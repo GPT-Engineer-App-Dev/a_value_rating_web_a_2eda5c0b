@@ -1,0 +1,145 @@
+import React, { useState } from "react";
+import { Box, Button, Container, Heading, Input, List, ListItem, Stack, Text, useToast, VStack } from "@chakra-ui/react";
+import { FaArrowRight, FaCheck, FaHome, FaSearch } from "react-icons/fa";
+
+const initialValues = [
+  "Honesty",
+  "Integrity",
+  "Respect",
+  "Innovation",
+  "Teamwork",
+  "Excellence",
+  "Accountability",
+  "Diversity",
+  "Leadership",
+  "Passion",
+  // ... add more values as needed
+];
+
+const Index = () => {
+  const [stage, setStage] = useState("home");
+  const [values, setValues] = useState([...initialValues]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedValues, setSelectedValues] = useState([]);
+  const [comparisons, setComparisons] = useState([]);
+  const [currentComparison, setCurrentComparison] = useState(0);
+  const [rankings, setRankings] = useState({});
+  const toast = useToast();
+
+  const handleValueSelect = (value) => {
+    if (selectedValues.includes(value)) {
+      setSelectedValues(selectedValues.filter((v) => v !== value));
+    } else if (selectedValues.length < 10) {
+      setSelectedValues([...selectedValues, value]);
+    } else {
+      toast({
+        title: "Maximum values selected",
+        description: "You can only select 10 values.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleStartComparing = () => {
+    const allComparisons = [];
+    for (let i = 0; i < selectedValues.length; i++) {
+      for (let j = i + 1; j < selectedValues.length; j++) {
+        allComparisons.push([selectedValues[i], selectedValues[j]]);
+      }
+    }
+    setComparisons(allComparisons);
+    setCurrentComparison(0);
+    setRankings(selectedValues.reduce((acc, val) => ({ ...acc, [val]: 0 }), {}));
+    setStage("compare");
+  };
+
+  const handleComparisonResult = (winner) => {
+    setRankings({ ...rankings, [winner]: rankings[winner] + 1 });
+    if (currentComparison < comparisons.length - 1) {
+      setCurrentComparison(currentComparison + 1);
+    } else {
+      setStage("results");
+    }
+  };
+
+  const filteredValues = values.filter((value) => value.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const goToHome = () => {
+    setStage("home");
+    setSelectedValues([]);
+    setCurrentComparison(0);
+    setRankings({});
+  };
+
+  return (
+    <Container centerContent>
+      {stage === "home" && (
+        <VStack spacing={8}>
+          <Heading>Welcome to the Value Rating App</Heading>
+          <Text textAlign="center">Discover your top personal values by rating them against each other.</Text>
+          <Button rightIcon={<FaArrowRight />} onClick={() => setStage("select")}>
+            Start Rating
+          </Button>
+        </VStack>
+      )}
+
+      {stage === "select" && (
+        <VStack spacing={4}>
+          <Input placeholder="Search values..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} rightIcon={<FaSearch />} />
+          <Box w="100%" h="400px" overflowY="auto">
+            <List spacing={2}>
+              {filteredValues.map((value) => (
+                <ListItem key={value} p={2}>
+                  <Button w="full" justifyContent="space-between" variant={selectedValues.includes(value) ? "solid" : "outline"} onClick={() => handleValueSelect(value)}>
+                    {value}
+                    {selectedValues.includes(value) && <FaCheck />}
+                  </Button>
+                </ListItem>
+              ))}
+            </List>
+          </Box>
+          <Button isDisabled={selectedValues.length !== 10} rightIcon={<FaArrowRight />} onClick={handleStartComparing}>
+            Compare Selected Values
+          </Button>
+        </VStack>
+      )}
+
+      {stage === "compare" && (
+        <VStack spacing={8}>
+          <Text>Which value is more important to you?</Text>
+          <Stack direction="row" spacing={4}>
+            {comparisons[currentComparison].map((value) => (
+              <Button key={value} onClick={() => handleComparisonResult(value)}>
+                {value}
+              </Button>
+            ))}
+          </Stack>
+        </VStack>
+      )}
+
+      {stage === "results" && (
+        <VStack spacing={8}>
+          <Heading>Value Rankings</Heading>
+          <List spacing={2}>
+            {Object.entries(rankings)
+              .sort((a, b) => b[1] - a[1])
+              .map(([value, wins], index) => (
+                <ListItem key={value} p={2}>
+                  <Text>
+                    {index + 1}. {value} - {wins} wins
+                  </Text>
+                </ListItem>
+              ))}
+          </List>
+          <Button leftIcon={<FaHome />} onClick={goToHome}>
+            Start Over
+          </Button>
+        </VStack>
+      )}
+    </Container>
+  );
+};
+
+export default Index;
